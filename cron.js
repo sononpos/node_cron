@@ -19,6 +19,9 @@ ssumup(1);
 ssumup(2);
 ssumup(3);
 
+issuelink();
+aagag();
+
 var user_agent_pc = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36";
 var user_agent_m = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
 
@@ -62,7 +65,7 @@ function issuegot(page) {
                 console.log(err);
             }
 
-            var strContents = new Buffer(body);
+            var strContents = Buffer.from(body);
 
             var $ = cheerio.load(iconv.decode(strContents, "UTF-8").toString());
 
@@ -114,7 +117,7 @@ function issuegot(page) {
                                         database: 'humor'
                                     });
 
-                                    var strContentsView = new Buffer(body);
+                                    var strContentsView = Buffer.from(body);
                                     var $ = cheerio.load(iconv.decode(strContentsView, "UTF-8").toString());
 
                                     var content_body = $(".xe_content").html();
@@ -175,7 +178,7 @@ function ssumup(page) {
                 console.log(error);
             }
 
-            var strContents = new Buffer(body);
+            var strContents = Buffer.from(body);
 
             var $ = cheerio.load(iconv.decode(strContents, "UTF-8").toString());
 
@@ -310,6 +313,262 @@ function ssumup(page) {
             // for(key in json_data) {
             
             // }
+            
+            
+            con.end();
+            
+        } catch(err) {
+            console.log(err);
+        }
+    });
+}
+
+function issuelink() {
+    console.log('issuelink 작업 실행');
+
+    var url = "https://www.issuelink.co.kr/community/listview/all/3/adj/_self/blank/blank/blank/";
+    var cookie = "";
+  
+    var requestOptions  = {
+        method: "GET",
+        uri: url,
+        headers: {
+            "User-Agent": user_agent_pc,
+            "Cookie": cookie,
+        },
+        encoding: null,
+        timeout:5000,
+    };
+
+    
+
+    // URL 호출부
+    request(requestOptions, function(error, response, body) {
+        try {
+
+            if (error) {
+                console.log(error);
+            }
+
+            var strContents = Buffer.from(body);
+
+            var $ = cheerio.load(iconv.decode(strContents, "UTF-8").toString());
+
+            const con = mysql.createConnection({
+                host: '127.0.0.1',
+                user: 'humor',
+                password: 'shekq123!',
+                database: 'humor'
+            });
+
+            
+            $(".ibox-content").find("tr").each(async function(index) {
+                var site_id = 7;
+                var content_no = index;
+                
+                var content_url = $(this).find(".first_title").find(".title").find("a").attr("href");
+                var head = $(this).find(".rank_bg").find("small").text().trim();
+                var content_subject = "[" + head + "] " + $(this).find(".first_title").find(".title").find("a").text().trim();
+
+                var commentcnt = $(this).find(".first_title").find(".title").find("a").find("small").text().trim();
+                content_subject = content_subject.replace(commentcnt, "").trim();
+                content_subject = content_subject.replaceAll('"', '""');
+                commentcnt = commentcnt.replace("[", "").replace("]", "");
+
+                if(content_url != undefined) {
+                    
+                    var yyyy = new Date().getYear().toString();
+                    var mm = new Date().getMonth().toString();
+                    var dd = new Date().getDate().toString();
+                    var hh = new Date().getHours().toString();
+ 
+                    content_no = yyyy + mm + dd + hh + content_no;
+    
+                    var username = $(this).find(".second_etc").find(".nick").text().trim();
+                    var viewcnt = $(this).find(".second_etc").find(".hit").text().trim().replace(",", "");
+                    //var regdate = $(this).find(".second_date").find("span").eq(0).text().trim();
+    
+                    if(content_no != '' && content_no.length <= 10 && username.length <= 20) {
+                        let row = await con.query('CALL cronCheckContent('+site_id+', '+content_no+')', (err, rows) => {
+        
+                            if(err) throw err;
+    
+                            var exists_result = rows[0][0].result;
+    
+                            if(exists_result == '1') {
+    
+                                const conView = mysql.createConnection({
+                                    host: '127.0.0.1',
+                                    user: 'humor',
+                                    password: 'shekq123!',
+                                    database: 'humor'
+                                });
+    
+                                conView.query('CALL cronAddContent2('+site_id+', '+content_no+', "'+content_url+'", "'+content_subject+'", " ", "노답", '+viewcnt+', '+commentcnt+')', (err, rows) => {
+                                    if(err) throw err;
+                                    console.log('insert complete - site_id : '+site_id+' , content_no : '+content_no);
+                                });
+                                conView.end();
+                            }
+                        });
+                    }
+                }
+
+                
+            });
+            
+            
+            con.end();
+            
+        } catch(err) {
+            console.log(err);
+        }
+    });
+}
+
+function aagag() {
+    console.log('aagag 작업 실행');
+
+    var url = "https://aagag.com/mirror/";
+    var cookie = "";
+  
+    var requestOptions  = {
+        method: "GET",
+        uri: url,
+        headers: {
+            "User-Agent": user_agent_pc,
+            "Cookie": cookie,
+        },
+        encoding: null,
+        timeout:5000,
+    };
+
+    // URL 호출부
+    request(requestOptions, function(error, response, body) {
+        try {
+
+            if (error) {
+                console.log(error);
+            }
+
+            var strContents = Buffer.from(body);
+
+            var $ = cheerio.load(iconv.decode(strContents, "UTF-8").toString());
+
+            const con = mysql.createConnection({
+                host: '127.0.0.1',
+                user: 'humor',
+                password: 'shekq123!',
+                database: 'humor'
+            });
+
+            $("#mList .article").each(async function(index) {
+
+                var head = $(this).find(".rank").attr("class").replace("rank bc_", "");
+            
+                switch(head) {
+                  case "clien":
+                    head = "클리앙"
+                    break;
+                  case "ou":
+                    head = "오유"
+                    break;
+                  case "slrclub":
+                    head = "SLR"
+                    break;
+                  case "ppomppu":
+                    head = "뽐뿌"
+                    break;
+                  case "82cook":
+                    head = "82쿡"
+                    break;
+                  case "mlbpark":
+                    head = "엠팍"
+                    break;
+                  case "bobae":
+                    head = "보배"
+                    break;
+                  case "inven":
+                    head = "인벤"
+                    break;
+                  case "ruli":
+                    head = "루리"
+                    break;
+                  case "humor":
+                    head = "웃대"
+                    break;
+                  case "ddanzi":
+                    head = "딴지"
+                    break;
+                  case "fmkorea":
+                    head = "펨코"
+                    break;
+                  default:
+                    head = "유머"
+                }
+
+                var site_id = 8;
+                
+                var content_url = $(this).attr("href");
+                content_url = "https://aagag.com" + content_url;
+
+                var content_subject = "[" + head + "] " + $(this).find(".title").text().trim();
+                content_subject = content_subject.replaceAll('"', '""');
+                
+
+                var notice = $(this).find(".list-symph").text().trim();
+            
+                var username = $(this).find(".nick").text().trim();
+                var regdate = $(this).find(".date").text().trim();
+                var viewcnt = $(this).find(".hit").text().trim();
+                var commentcnt = $(this).find(".cmt").text().trim();
+                
+                content_subject = content_subject.replace(commentcnt, "");
+                commentcnt = commentcnt.replace("(", "").replace(")", "");
+
+                
+
+                if(content_subject != '' && notice != "공지") {
+                    
+                    var yyyy = new Date().getYear().toString();
+                    var mm = new Date().getMonth().toString();
+                    var dd = new Date().getDate().toString();
+                    var hh = new Date().getHours().toString();
+ 
+                    var content_no = yyyy + mm + dd + hh + index;
+
+
+                    if(content_no != '' && content_no.length <= 10 && username.length <= 20) {
+
+                        
+
+                        let row = await con.query('CALL cronCheckContent('+site_id+', '+content_no+')', (err, rows) => {
+        
+                            if(err) throw err;
+    
+                            var exists_result = rows[0][0].result;
+    
+                            if(exists_result == '1') {
+    
+                                const conView = mysql.createConnection({
+                                    host: '127.0.0.1',
+                                    user: 'humor',
+                                    password: 'shekq123!',
+                                    database: 'humor'
+                                });
+    
+                                conView.query('CALL cronAddContent2('+site_id+', '+content_no+', "'+content_url+'", "'+content_subject+'", " ", "노답", '+viewcnt+', '+commentcnt+')', (err, rows) => {
+                                    if(err) throw err;
+                                    console.log('insert complete - site_id : '+site_id+' , content_no : '+content_no);
+                                });
+                                conView.end();
+                            }
+                        });
+                    }
+    
+                    
+                }
+            });
             
             
             con.end();
